@@ -9,7 +9,7 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace CollisionDetection
 {
-    class Levels : StaticObject
+    class BackgroundObject : GameObjects
     {
     }
 }

@@ -4,12 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-
 namespace CollisionDetection
 {
-    class BackgroundObjects : GameObjects
+    class PlayerObject : CharacterObject
     {
     }
 }
