@@ -1,6 +1,9 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using System;
+using System.Collections.Generic;
+using System.Security.Cryptography;
 
 namespace CollisionDetection
 {
@@ -11,13 +14,13 @@ namespace CollisionDetection
     {
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
-
+        
         // Mario texture stuff
         private Texture2D marioTexture;
-        //private Rectangle marioPosition;
-        private Vector2 marioPosition;
+        private Rectangle marioSprite;
         int numSpritesInSheet;
-        int widthOfSingleSprite;
+        int marioWidth = 44;
+        int marioHeight = 72;
         
         // Mario Statemachine
         private enum MarioState
@@ -30,35 +33,37 @@ namespace CollisionDetection
             Jump
         }
 
-        // Mario Size
-        private int height = 0;
-        private int width = 0;
-
         // Mario Position
-        //private int xPosPlayerPlayer = 200;
-        //private int yPosPlayerPlayer = 200;
-        private float xPosPlayer = 200;
-        private float yPosPlayer = 200;
+        private int xPosPlayer = 0;
+        private int yPosPlayer = 0;
 
         private MarioState MarioPreviousState = MarioState.Stand;
         private MarioState MarioCurrentState = MarioState.Stand;
 
-        // Fireball texture stuuf
-        private Texture2D fireball;
-        private Vector2 fireballPosition;
+        // Fireball texture stuff
+        private Texture2D fireballTexture;
+        private List<Rectangle> rectanglesSprite = new List<Rectangle>();
+        private int nrOfFireballs = 5;
+        private int drawInterval = 0;
+        private int previousChangeInX = 5;
+        private int previousChangeInY = 5;
 
-        // Fireball Position
-        private float xPosEnemy = 400;
-        private float yPosEnemy = 400;
-
+        private int fireballHeight = 50;
+        private int fireballWidth = 50;
         
-
         // Animation reqs
         int currentFrame;
         double fps;
         double secondsPerFrame;
         double timeCounter;
 
+        // Random location generator
+        public static Random random = new Random();
+        private static readonly RNGCryptoServiceProvider generator = new RNGCryptoServiceProvider();
+
+        /// <summary>
+        /// Main program for game
+        /// </summary>
         public Game1()
         {
             graphics = new GraphicsDeviceManager(this);
@@ -82,6 +87,16 @@ namespace CollisionDetection
         {
             // TODO: Add your initialization logic here
 
+            marioSprite = new Rectangle(xPosPlayer, yPosPlayer, marioWidth, marioHeight);
+            
+            for (int i = 0; i < nrOfFireballs; i++)
+            {
+                int randomX = (int)random.Next(GraphicsDevice.Viewport.Width);
+                int randomY = (int)random.Next(GraphicsDevice.Viewport.Height);
+
+                rectanglesSprite.Add(new Rectangle(randomX, randomY, fireballWidth, fireballHeight));
+            }
+
             base.Initialize();
         }
 
@@ -96,9 +111,11 @@ namespace CollisionDetection
 
             marioTexture = Content.Load<Texture2D>("MarioSpriteSheet");
             numSpritesInSheet = 4;
-            widthOfSingleSprite = marioTexture.Width / numSpritesInSheet;
+            marioWidth = marioTexture.Width / numSpritesInSheet;
 
-            marioPosition = new  Vector2(xPosPlayer, yPosPlayer);
+            marioSprite = new Rectangle(xPosPlayer, yPosPlayer, marioWidth, marioHeight);
+
+            fireballTexture = Content.Load<Texture2D>("FireballSprite");
 
             // Set up animation stuff
             currentFrame = 1;
@@ -120,10 +137,10 @@ namespace CollisionDetection
 
             // *** Put code to check and update FINITE STATE MACHINE here
 
-            ProcessInput();
-            //UpdateState();
+            UpdateFireballs();
 
-            // Update the animation
+            ProcessInput();
+            
             UpdateAnimation(gameTime);
             base.Update(gameTime);
         }
@@ -151,6 +168,166 @@ namespace CollisionDetection
         }
 
         /// <summary>
+        /// Generates random direction for fireballs to move into
+        /// </summary>
+        protected void UpdateFireballs()
+        {
+            int randomDirection = 0;
+            int randomX = 0;
+            int randomY = 0;
+
+            if (drawInterval == 200)
+            {
+                for (int i = 0; i < nrOfFireballs; i++)
+                {
+
+                    randomX = rectanglesSprite[i].X;
+                    randomY = rectanglesSprite[i].Y;
+
+                    randomDirection = NumberBetween(0, 800);                    // Decide on direction depending on random number received
+                    Console.WriteLine(randomDirection);
+
+                    if ((randomDirection > 0) && (randomDirection <= 100))
+                    {
+                        Console.WriteLine("1");
+                        randomX += 5;
+
+                        previousChangeInX = 5;
+                        previousChangeInY = 0;
+                    }
+                    else if ((randomDirection > 101) && (randomDirection <= 200))
+                    {
+                        Console.WriteLine("2");
+                        randomY += 5;
+
+                        previousChangeInX = 0;
+                        previousChangeInY = 5;
+                    }
+                    else if ((randomDirection > 201) && (randomDirection <= 300))
+                    {
+                        Console.WriteLine("3");
+                        randomX -= 5;
+
+                        previousChangeInX = -5;
+                        previousChangeInY = 0;
+                    }
+                    else if ((randomDirection > 301) && (randomDirection <= 400))
+                    {
+                        Console.WriteLine("4");
+                        randomY -= 5;
+
+                        previousChangeInX = 0;
+                        previousChangeInY = -5;
+                    }
+                    else if ((randomDirection > 401) && (randomDirection <= 500))
+                    {
+                        Console.WriteLine("5");
+                        randomX += 5;
+                        randomY += 5;
+
+                        previousChangeInX = 5;
+                        previousChangeInY = 5;
+                    }
+                    else if ((randomDirection > 501) && (randomDirection <= 600))
+                    {
+                        Console.WriteLine("6");
+                        randomX -= 5;
+                        randomY -= 5;
+
+                        previousChangeInX = -5;
+                        previousChangeInY = -5;
+                    }
+                    else if ((randomDirection > 601) && (randomDirection <= 700))
+                    {
+                        Console.WriteLine("7");
+                        randomX += 5;
+                        randomY -= 5;
+
+                        previousChangeInX = 5;
+                        previousChangeInY = -5;
+                    }
+                    else if ((randomDirection > 701) && (randomDirection <= 800))
+                    {
+                        Console.WriteLine("8");
+                        randomX -= 5;
+                        randomY += 5;
+
+                        previousChangeInX = -5;
+                        previousChangeInY = 5;
+                    }
+
+                    rectanglesSprite[i] = new Rectangle(                        // Draw the fireball with the new properties
+                        CheckX(randomX, fireballWidth),
+                        CheckY(randomY, fireballHeight),
+                        fireballWidth,
+                        fireballHeight);
+
+                    drawInterval = 0;
+                }
+            }
+            else
+            {   
+                for (int i = 0; i < nrOfFireballs; i++)                         // This loop allows the fireballs to move in a 
+                {                                                                   // straight line for a while before changing
+                    randomX = rectanglesSprite[i].X;                                // direction.
+                    randomY = rectanglesSprite[i].Y;
+
+                    rectanglesSprite[i] = new Rectangle(
+                    CheckX(randomX + previousChangeInX, fireballWidth),
+                    CheckY(randomY + previousChangeInY, fireballHeight),
+                    fireballWidth,
+                    fireballHeight);
+
+                    drawInterval++;
+                }
+            }       
+        }
+
+        /// <summary>
+        /// Checks if the X coordinate is leaving the screen
+        /// </summary>
+        /// <param name="xValue">X coordinate</param>
+        /// <param name="objectWidth">Width of the object</param>
+        /// <returns></returns>
+        private int CheckX(int xValue, int objectWidth)
+        {
+            int returnValue = xValue;
+
+            if (xValue > GraphicsDevice.Viewport.Width)
+            {
+                returnValue = 0;
+            }
+            else if (xValue < 0)
+            {
+                returnValue = GraphicsDevice.Viewport.Width;
+            }
+
+            return returnValue;
+        }
+
+        /// <summary>
+        /// Checks if the Y coordinate is leaving the screen
+        /// </summary>
+        /// <param name="yValue">Y coordinate</param>
+        /// <param name="objectHeight">Height of the object</param>
+        /// <returns></returns>
+        private int CheckY(int yValue, int objectHeight)
+        {
+            int returnValue = yValue;
+
+            if (yValue > GraphicsDevice.Viewport.Height)
+            {
+                returnValue = 0;
+            }
+            else if (yValue < 0)
+            {
+                returnValue = GraphicsDevice.Viewport.Height;
+            }
+
+            return returnValue;
+        }
+
+        /// <summary>
         /// This is called when the game should draw itself.
         /// </summary>
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
@@ -165,6 +342,7 @@ namespace CollisionDetection
 
             // Example call to draw mario walking (replace or adjust this line!)
             DrawMario();
+            DrawFireballs();
 
             spriteBatch.End();
 
@@ -187,39 +365,64 @@ namespace CollisionDetection
                 flips = SpriteEffects.FlipHorizontally;                 // If mario is facing other way, flip sprite
 
                 currentMario = new Rectangle(
-                                   widthOfSingleSprite * currentFrame,
+                                   marioWidth * currentFrame,
                                    0,
-                                   widthOfSingleSprite,
-                                   marioTexture.Height);
+                                   marioWidth,
+                                   marioHeight);
             }
             else if (MarioCurrentState == MarioState.FaceRight ||       // Size definition if Mario is facing right
                 MarioCurrentState == MarioState.WalkRight)
             {
                 currentMario = new Rectangle(
-                                   widthOfSingleSprite * currentFrame,
+                                   marioWidth * currentFrame,
                                    0,
-                                   widthOfSingleSprite,
-                                   marioTexture.Height);
+                                   marioWidth,
+                                   marioHeight);
             }
             else                                                        // If size definition if Mario is not moving
             {
                 currentMario = new Rectangle(
                                    0,
                                    0,
-                                   widthOfSingleSprite,
-                                   marioTexture.Height);
+                                   marioWidth,
+                                   marioHeight);
             }
-            
+
             spriteBatch.Draw(                                           // Draw the sprite from the spriteBatch
                 marioTexture,
-                marioPosition,
+                marioSprite,
                 currentMario,
                 Color.White,
                 0.0f,
                 Vector2.Zero,
-                1.0f,
                 flips,
                 0.0f);
+        }
+
+
+        /// <summary>
+        /// Draws the fireballs to screen
+        /// </summary>
+        private void DrawFireballs()
+        {
+            Color drawColor = new Color();
+
+            for (int i = 0; i < 5; i++)
+            {
+                if (rectanglesSprite[i].Intersects(marioSprite))
+                {
+                    drawColor = Color.Red;                              // Display as red when contact with player
+                }
+                else
+                {
+                    drawColor = Color.White;                            // Display normal if there is no contact
+                }
+
+                spriteBatch.Draw(
+                fireballTexture,
+                rectanglesSprite[i],
+                drawColor);
+            }
         }
 
         /// <summary>
@@ -233,7 +436,7 @@ namespace CollisionDetection
 
             if (keyboardState.IsKeyDown(Keys.A))                    // Move left
             {
-                xPosPlayer = xPosPlayer - 5;
+                xPosPlayer = CheckX(xPosPlayer - 5, marioWidth);
 
                 if (MarioPreviousState == MarioState.WalkRight)
                 {
@@ -255,7 +458,7 @@ namespace CollisionDetection
 
             if (keyboardState.IsKeyDown(Keys.D))                    // Move right
             {
-                xPosPlayer = xPosPlayer + 5;
+                xPosPlayer = CheckX(xPosPlayer + 5, marioWidth);
 
                 if (MarioPreviousState == MarioState.WalkLeft)
                 {
@@ -277,12 +480,12 @@ namespace CollisionDetection
 
             if (keyboardState.IsKeyDown(Keys.W))                    // Move up
             {
-                yPosPlayer = yPosPlayer - 5;
+                yPosPlayer = CheckY(yPosPlayer - 5, marioHeight);
             }
 
             if (keyboardState.IsKeyDown(Keys.S))                    // Move down
             {
-                yPosPlayer = yPosPlayer + 5;
+                yPosPlayer = CheckY(yPosPlayer + 5, marioHeight);
             }
 
             if (keyboardState.IsKeyUp(Keys.W) &&                    // If all keys are up, Mario is standing
@@ -293,7 +496,35 @@ namespace CollisionDetection
                 MarioCurrentState = MarioState.Stand;
             }
 
-            marioPosition = new Vector2(xPosPlayer, yPosPlayer);                // Update characterPosition variable
+            marioSprite = new Rectangle(xPosPlayer, yPosPlayer, marioWidth, marioHeight);                // Update characterPosition variable
+        }
+
+        /// <summary>
+        /// Improved random number generator.  Built in generator doesn' work that well.
+        /// produces a number between min and max value including those values
+        /// </summary>
+        /// <param name="minimumValue">Lowest value to include in generation</param>
+        /// <param name="maximumValue">Highest value to include in generation</param>
+        /// <returns></returns>
+        private static int NumberBetween(int minimumValue, int maximumValue)
+        {
+            byte[] randomNumber = new byte[1];
+
+            generator.GetBytes(randomNumber);
+
+            double asciiValueOfRandomCharacter = Convert.ToDouble(randomNumber[0]);
+
+                                                            // We are using Math.Max, and substracting 0.00000000001, 
+                                                            // to ensure "multiplier" will always be between 0.0 and .99999999999
+                                                            // Otherwise, it's possible for it to be "1", which causes problems in our rounding.
+            double multiplier = Math.Max(0, (asciiValueOfRandomCharacter / 255d) - 0.00000000001d);
+
+                                                            // We need to add one to the range, to allow for the rounding done with Math.Floor
+            int range = maximumValue - minimumValue + 1;
+
+            double randomValueInRange = Math.Floor(multiplier * range);
+
+            return (int)(minimumValue + randomValueInRange);
         }
     }
 }
